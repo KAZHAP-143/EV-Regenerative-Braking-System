@@ -49,6 +49,28 @@ class TestEVBraking(unittest.TestCase):
             delta=1e-5
         )
 
+    def test_cold_battery_blocks_regeneration(self):
+        result = simulate(
+            mu=0.85,
+            battery_temperature=-5
+        )
+        self.assertAlmostEqual(result["energy_kwh"], 0.0)
+
+    def test_hot_battery_reduces_regeneration(self):
+        normal = simulate(
+            mu=0.85,
+            battery_temperature=25
+        )
+        hot = simulate(
+            mu=0.85,
+            battery_temperature=45
+        )
+
+        self.assertGreater(
+            normal["energy_kwh"],
+            hot["energy_kwh"]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -30,6 +30,12 @@ road = st.sidebar.selectbox(
 battery_soc = st.sidebar.slider(
     "Battery SOC (%)", 0, 100, 60
 )
+battery_temperature = st.sidebar.slider(
+    "Battery Temperature (°C)",
+    -20,
+    60,
+    25
+)
 
 st.header("Vehicle Dashboard")
 
@@ -48,11 +54,13 @@ st.caption(
 # Run vehicle simulation
 mu = 0.85 if road == "Dry Road" else 0.45
 
+
 result = simulate(
     mu=mu,
     initial_speed_kmh=speed,
     brake_force=braking_force,
-    initial_soc=battery_soc / 100
+    initial_soc=battery_soc / 100,
+    battery_temperature=battery_temperature
 )
 
 st.header("Simulation Results")

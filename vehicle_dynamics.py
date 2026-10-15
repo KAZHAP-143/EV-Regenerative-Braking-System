@@ -1,5 +1,6 @@
 
 import numpy as np
+from battery_thermal import temperature_charge_factor
 
 # Vehicle parameters
 mass = 1500.0
@@ -19,7 +20,8 @@ max_charge_power = 50_000.0
 battery_capacity_j = 60 * 3_600_000
 
 
-def simulate(mu, initial_speed_kmh=100, brake_force=4500, initial_soc=0.60):
+def simulate(mu, initial_speed_kmh=100, brake_force=4500,
+             initial_soc=0.60, battery_temperature=25):
     # Initial conditions
     soc = initial_soc
     speed = initial_speed_kmh / 3.6
@@ -70,6 +72,7 @@ def simulate(mu, initial_speed_kmh=100, brake_force=4500, initial_soc=0.60):
             / wheel_radius
         )
 
+        
         # Battery SOC protection
         if soc >= 0.95:
             soc_factor = 0.0
@@ -78,7 +81,16 @@ def simulate(mu, initial_speed_kmh=100, brake_force=4500, initial_soc=0.60):
         else:
             soc_factor = 1.0
 
-        allowed_charge_power = max_charge_power * soc_factor
+        # Battery temperature protection
+        thermal_factor = temperature_charge_factor(
+            battery_temperature
+        )
+
+        # Always calculate allowed charging power
+        allowed_charge_power = (
+            max_charge_power * soc_factor * thermal_factor
+        )
+
 
         # Regenerative braking controller
         if speed > 1.4:
