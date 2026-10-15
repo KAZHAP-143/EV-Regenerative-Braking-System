@@ -320,3 +320,50 @@ Mechatronics Engineering | Automotive Engineering | Electric Vehicle Systems | M
 
 ### 3D Vehicle Visualization
 ![3D Vehicle](images/vehicle_3d.png)
+
+## Stage 24 — Anti-lock Braking System (ABS)
+
+This stage extends the regenerative braking project with a simplified quarter-car Anti-lock Braking System (ABS) simulation.
+
+### Implemented Features
+
+- Wheel rotational dynamics and longitudinal slip calculation
+- Simplified threshold-based ABS brake-force controller
+- Nonlinear tire-road friction model for dry and wet roads
+- ABS ON/OFF stopping-distance comparison
+- Wheel-slip analysis and visualization
+- Streamlit dashboard integration
+- Automated ABS system tests
+
+### Simulation Results
+
+Initial vehicle speed: 100 km/h
+
+| Road | ABS | Stopping Distance | Stopping Time |
+|------|-----|-------------------|---------------|
+| Dry | ON | 61.12 m | 4.39 s |
+| Dry | OFF | 61.12 m | 4.39 s |
+| Wet | ON | 88.09 m | 6.33 s |
+| Wet | OFF | 130.14 m | 9.48 s |
+
+For the simulated wet-road scenario, ABS reduced stopping distance by approximately 42.05 m (32.3%).
+
+Maximum reported wheel slip:
+- ABS ON: 20.4%
+- ABS OFF: 100%
+
+### ABS Analysis Graphs
+
+![ABS Controller Response](images/abs_controller_response.png)
+
+![ABS Stopping Distance Comparison](images/abs_stopping_distance_comparison.png)
+
+![ABS Wheel Slip Comparison](images/abs_wheel_slip_comparison.png)
+
+### Engineering Limitations
+
+The ABS model uses simplified threshold-based brake control and quarter-car dynamics.
+
+The reported performance is specific to the chosen model parameters and does not establish real-world vehicle performance.
+
+The ABS and regenerative braking simulations are currently separate models; coordinated regenerative/friction braking control is not yet implemented.
