@@ -43,7 +43,8 @@ def simulate(mu, initial_speed_kmh=100, brake_force=4500,
     friction_history = [0.0]
     power_history = [0.0]
 
-    while speed > 0:
+    while speed > 1e-8:
+    
         # Aerodynamic resistance
         drag = (
             0.5 * air_density
@@ -157,6 +158,9 @@ def simulate(mu, initial_speed_kmh=100, brake_force=4500,
 
         # Update speed and time
         speed = max(0.0, speed - deceleration * step)
+
+        if speed < 1e-8:
+         speed = 0.0
         time += step
 
         # Record simulation results

@@ -3,6 +3,7 @@ from vehicle_3d import create_vehicle_3d
 import streamlit as st
 from vehicle_dynamics import simulate
 import pandas as pd
+from abs_vehicle_simulation import simulate_abs
 st.set_page_config(
     page_title="EV Regenerative Braking",
     page_icon="🚗",
@@ -266,3 +267,102 @@ if abs(energy_error) < 0.00001:
     st.success("Energy conservation test passed!")
 else:
     st.warning("Energy balance requires further investigation.")
+
+# ABS performance analysis
+st.divider()
+
+st.header("Anti-lock Braking System (ABS) Analysis")
+
+st.caption(
+    "Simplified quarter-car ABS simulation. "
+    "Results are illustrative and not experimentally validated."
+)
+
+abs_road = st.selectbox(
+    "ABS Road Condition",
+    ["Dry Road", "Wet Road"],
+    key="abs_road_condition"
+)
+
+abs_road_type = "dry" if abs_road == "Dry Road" else "wet"
+
+if st.button("Run ABS Comparison"):
+    with st.spinner("Running ABS simulations..."):
+        abs_on = simulate_abs(
+            road=abs_road_type,
+            abs_enabled=True
+        )
+
+        abs_off = simulate_abs(
+            road=abs_road_type,
+            abs_enabled=False
+        )
+
+    st.subheader("ABS Braking Performance")
+
+    col1, col2 = st.columns(2)
+
+    col1.metric(
+        "Stopping Distance — ABS ON",
+        f"{abs_on['stop_distance']:.2f} m"
+    )
+
+    col2.metric(
+        "Stopping Distance — ABS OFF",
+        f"{abs_off['stop_distance']:.2f} m"
+    )
+
+    distance_reduction = (
+        abs_off["stop_distance"] - abs_on["stop_distance"]
+    )
+
+    st.metric(
+        "Stopping Distance Reduction",
+        f"{distance_reduction:.2f} m"
+    )
+
+    slip_data = pd.DataFrame({
+        "Time (s)": abs_on["history"]["time"],
+        "Wheel Slip (%)": [
+            slip * 100
+            for slip in abs_on["history"]["slip"]
+        ]
+    })
+
+    st.subheader("Wheel Slip — ABS ON")
+
+    st.line_chart(
+        slip_data.set_index("Time (s)")
+    )
+
+    # Compare ABS ON and ABS OFF wheel slip
+    st.subheader("Wheel Slip Comparison — ABS ON vs OFF")
+
+    abs_on_df = pd.DataFrame({
+        "Time (s)": abs_on["history"]["time"],
+        "ABS ON (%)": [
+            slip * 100
+            for slip in abs_on["history"]["slip"]
+        ]
+    })
+
+    abs_off_df = pd.DataFrame({
+        "Time (s)": abs_off["history"]["time"],
+        "ABS OFF (%)": [
+            slip * 100
+            for slip in abs_off["history"]["slip"]
+        ]
+    })
+
+    comparison_df = pd.merge_asof(
+        abs_on_df.sort_values("Time (s)"),
+        abs_off_df.sort_values("Time (s)"),
+        on="Time (s)",
+        direction="nearest"
+    )
+
+    st.line_chart(
+        comparison_df.set_index("Time (s)")
+    )
+
+    st.success("ABS comparison completed!")
