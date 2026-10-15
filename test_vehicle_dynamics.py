@@ -71,6 +71,25 @@ class TestEVBraking(unittest.TestCase):
             hot["energy_kwh"]
         )
 
+    def test_motor_efficiency_values(self):
+        from motor_efficiency import calculate_motor_efficiency
+
+        self.assertAlmostEqual(
+            calculate_motor_efficiency(25), 0.70
+        )
+        self.assertAlmostEqual(
+            calculate_motor_efficiency(80), 0.92
+        )
+
+    def test_recovered_energy_increases_with_speed(self):
+        low = simulate(mu=0.85, initial_speed_kmh=30)
+        high = simulate(mu=0.85, initial_speed_kmh=100)
+
+        self.assertGreater(
+            high["energy_kwh"],
+            low["energy_kwh"]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

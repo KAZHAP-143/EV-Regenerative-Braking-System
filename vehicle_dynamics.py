@@ -1,6 +1,7 @@
 
 import numpy as np
 from battery_thermal import temperature_charge_factor
+from motor_efficiency import calculate_motor_efficiency
 
 # Vehicle parameters
 mass = 1500.0
@@ -15,7 +16,6 @@ motor_torque = 200.0
 gear_ratio = 9.0
 wheel_radius = 0.32
 drivetrain_efficiency = 0.95
-regen_efficiency = 0.85
 max_charge_power = 50_000.0
 battery_capacity_j = 60 * 3_600_000
 
@@ -91,8 +91,9 @@ def simulate(mu, initial_speed_kmh=100, brake_force=4500,
             max_charge_power * soc_factor * thermal_factor
         )
 
-
         # Regenerative braking controller
+        regen_efficiency = calculate_motor_efficiency(speed * 3.6)
+
         if speed > 1.4:
             power_force_limit = (
                 allowed_charge_power
@@ -107,7 +108,9 @@ def simulate(mu, initial_speed_kmh=100, brake_force=4500,
         else:
             regen_force = 0.0
 
-        # Friction braking compensates
+        # Friction braking supplies the remaining force
+
+        
         friction_force = braking_force - regen_force
 
         # Vehicle longitudinal dynamics
