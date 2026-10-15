@@ -63,6 +63,22 @@ result = simulate(
     battery_temperature=battery_temperature
 )
 
+# Energy recovery efficiency
+vehicle_mass = 1500  # Must match vehicle_dynamics.py
+initial_speed_ms = speed / 3.6
+
+initial_kinetic_energy_kwh = (
+    0.5 * vehicle_mass * initial_speed_ms**2
+) / 3_600_000
+
+recovered_energy_kwh = result["energy_kwh"]
+
+recovery_efficiency = (
+    100 * recovered_energy_kwh / initial_kinetic_energy_kwh
+    if initial_kinetic_energy_kwh > 0
+    else 0.0
+)
+
 st.header("Simulation Results")
 
 col1, col2, col3 = st.columns(3)
@@ -80,6 +96,11 @@ col2.metric(
 col3.metric(
     "Recovered Energy",
     f"{result['energy_kwh']:.4f} kWh"
+)
+
+st.metric(
+    "Energy Recovery Efficiency",
+    f"{recovery_efficiency:.2f}%"
 )
 
 # Speed graph
@@ -223,6 +244,23 @@ energy_df = pd.DataFrame({
 })
 
 st.bar_chart(energy_df.set_index("Energy Component"))
+
+import plotly.express as px
+
+st.subheader("Energy Distribution")
+
+fig = px.pie(
+    energy_df,
+    names="Energy Component",
+    values="Energy (kWh)",
+    title="Braking Energy Distribution",
+    hole=0.35
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
 
 if abs(energy_error) < 0.00001:
     st.success("Energy conservation test passed!")
