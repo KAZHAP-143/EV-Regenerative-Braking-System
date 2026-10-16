@@ -5,6 +5,8 @@ from brake_coordinator import coordinate_braking
 from tire_model import calculate_tire_force
 from battery_soc_control import calculate_regen_soc_factor
 from battery_temperature_control import calculate_regen_temperature_factor
+from motor_power_model import calculate_regen_power
+from battery_power_limit import calculate_max_regen_force
 
 def simulate_coordinated_braking(
     road="wet",
@@ -18,6 +20,8 @@ def simulate_coordinated_braking(
     """
 
     quarter_mass = 1500.0 / 4
+    # Simplified assumption: four identical regenerative wheels
+    regenerative_wheel_count = 4
     wheel_radius = 0.30
     wheel_inertia = 1.8
     normal_force = quarter_mass * 9.81
@@ -82,6 +86,23 @@ def simulate_coordinated_braking(
         available_regen_force = (
             regen_limit * soc_factor * temperature_factor
         )
+                # Battery charging power constraint
+        # 50 kW is the full-vehicle charging limit.
+        # Allocate one quarter of it to this wheel.
+        wheel_charging_power_limit = max_battery_charging_power / 4.0
+
+        power_limited_regen_force = calculate_max_regen_force(
+            max_battery_power=wheel_charging_power_limit,
+            wheel_speed=wheel_speed,
+            wheel_radius=wheel_radius,
+            motor_efficiency=motor_efficiency,
+            charging_efficiency=battery_charging_efficiency
+        )
+
+        available_regen_force = min(
+            available_regen_force,
+            power_limited_regen_force
+        )
 
 
         # Coordinate regenerative and friction braking
@@ -95,29 +116,38 @@ def simulate_coordinated_braking(
         
         total_brake_force = braking["total_brake_force"]
 
-        # Calculate idealized regenerative power
-        # Mechanical regenerative power
-        regen_mechanical_power = braking["regen_force"] * vehicle_speed
+                # Calculate regenerative power from wheel rotation
+        regen_electrical_power = calculate_regen_power(
+            regen_force=braking["regen_force"],
+            wheel_speed=wheel_speed,
+            wheel_radius=wheel_radius,
+            motor_efficiency=motor_efficiency
+        )
 
-        # Electrical power after motor/inverter conversion losses
-        # Electrical power after motor/inverter conversion
-        regen_electrical_power = regen_mechanical_power * motor_efficiency
-
-        # Power stored in battery after charging losses
         # Apply battery charging efficiency
-        battery_power = regen_electrical_power * battery_charging_efficiency
+        battery_power = (
+            regen_electrical_power * battery_charging_efficiency
+        )
 
         # Limit power stored in the battery to 50 kW
-        regen_power = min(battery_power, max_battery_charging_power)
+        regen_power = min(
+            battery_power,
+            wheel_charging_power_limit
+        )
+        # Total charging power from all regenerative wheels
+        total_regen_power = regen_power * regenerative_wheel_count
         # Accumulate recovered energy
-        recovered_energy_joules += regen_power * dt
+        recovered_energy_joules += total_regen_power * dt
         # Update battery state of charge
-        energy_added_kwh = regen_power * dt / 3_600_000
+        energy_added_kwh = total_regen_power * dt / 3600000
 
         battery_soc += energy_added_kwh / battery_capacity_kwh
 
         battery_soc = min(battery_soc, 1.0)
-
+        regen_power = min(
+            battery_power,
+            wheel_charging_power_limit
+        )
         # Check that regenerative power is nonnegative
         assert regen_power >= 0.0
 

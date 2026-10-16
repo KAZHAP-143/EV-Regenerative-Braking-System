@@ -327,7 +327,7 @@ if st.button("Run ABS Comparison"):
     )
 
     st.metric(
-        "Recovered Battery Energy — ABS ON",
+        "Vehicle Energy Recovered — ABS ON",
         f"{coordinated_result['recovered_energy_kwh'] * 1000:.2f} Wh"
     )
     coordinated_result_off = simulate_coordinated_braking(
@@ -338,7 +338,7 @@ if st.button("Run ABS Comparison"):
     )
 
     st.metric(
-        "Recovered Battery Energy — ABS OFF",
+        "Vehicle Energy Recovered — ABS OFF",
         f"{coordinated_result_off['recovered_energy_kwh'] * 1000:.2f} Wh"
     )
 
