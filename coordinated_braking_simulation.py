@@ -9,6 +9,7 @@ from motor_power_model import calculate_regen_power
 from battery_power_limit import calculate_max_regen_force
 from proportional_abs_controller import proportional_abs_control
 from brake_actuator import update_brake_pressure
+from adaptive_brake_coordinator import coordinate_adaptive_braking
 
 def simulate_coordinated_braking(
     road="wet",
@@ -17,8 +18,10 @@ def simulate_coordinated_braking(
     battery_temperature=25.0,
     abs_controller="original",
     actuator_enabled=False,
-    actuator_response_time=0.02
+    actuator_response_time=0.02,
+    braking_mode="original"
 ):
+    
 
     """
     Simplified quarter-car model with coordinated
@@ -149,12 +152,27 @@ def simulate_coordinated_braking(
             effective_abs_factor = abs_factor
 
 
+        
         # Coordinate regenerative and friction braking
-        braking = coordinate_braking(
-            requested_force=requested_force,
-            regen_limit=available_regen_force,
-            abs_factor=effective_abs_factor
-        )
+        if braking_mode == "adaptive":
+            regen_force, friction_force = coordinate_adaptive_braking(
+                requested_force=requested_force,
+                regen_limit=available_regen_force,
+                abs_factor=effective_abs_factor
+            )
+
+            braking = {
+                "regen_force": regen_force,
+                "friction_force": friction_force,
+                "total_brake_force": regen_force + friction_force
+            }
+        else:
+            braking = coordinate_braking(
+                requested_force=requested_force,
+                regen_limit=available_regen_force,
+                abs_factor=effective_abs_factor
+            )
+
 
 
         
@@ -188,10 +206,6 @@ def simulate_coordinated_braking(
         battery_soc += energy_added_kwh / battery_capacity_kwh
 
         battery_soc = min(battery_soc, 1.0)
-        regen_power = min(
-            battery_power,
-            wheel_charging_power_limit
-        )
         # Check that regenerative power is nonnegative
         assert regen_power >= 0.0
 
