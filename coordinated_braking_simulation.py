@@ -12,8 +12,13 @@ from brake_actuator import update_brake_pressure
 from adaptive_brake_coordinator import coordinate_adaptive_braking
 from road_adaptive_abs_controller import road_adaptive_abs_control
 from enhanced_tire_model import enhanced_tire_force
+from grip_based_brake_initializer import calculate_initial_brake_force
+
 
 def simulate_coordinated_braking(
+
+
+
     road="wet",
     abs_enabled=True,
     initial_soc=0.60,
@@ -23,7 +28,10 @@ def simulate_coordinated_braking(
     actuator_response_time=0.02,
     braking_mode="original",
     tire_model="original",
-    abs_gain=7.0
+    abs_gain=7.0,
+    initial_speed_kmh=100.0,
+    initial_actuator_force=None,
+    initialization_mode="original"
 ):
     
 
@@ -40,16 +48,36 @@ def simulate_coordinated_braking(
     normal_force = quarter_mass * 9.81
 
     dt = 0.0001
-    vehicle_speed = 100.0 / 3.6
+
+    if not 0.0 < initial_speed_kmh <= 250.0:
+        raise ValueError("Initial speed must be between 0 and 250 km/h")
+
+    vehicle_speed = initial_speed_kmh / 3.6
     wheel_speed = vehicle_speed / wheel_radius
 
     requested_force = 2500.0
     regen_limit = 1500.0
 
-    # Brake actuator state (force in Newtons)
-    actuator_force = requested_force
+    # Brake actuator initialization
+    if initialization_mode not in ("original", "grip_based"):
+        raise ValueError("Invalid brake initialization mode")
 
+    if initial_actuator_force is not None:
+        if not 0.0 <= initial_actuator_force <= requested_force:
+            raise ValueError(
+                "Initial actuator force must be between 0 and requested force"
+            )
+        actuator_force = initial_actuator_force
 
+    elif initialization_mode == "grip_based":
+        actuator_force = calculate_initial_brake_force(
+            road=road,
+            normal_force=normal_force,
+            requested_force=requested_force,
+        )
+
+    else:
+        actuator_force = requested_force
     time = 0.0
     distance = 0.0
     recovered_energy_joules = 0.0
