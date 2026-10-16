@@ -4,6 +4,8 @@ import streamlit as st
 from vehicle_dynamics import simulate
 import pandas as pd
 from abs_vehicle_simulation import simulate_abs
+from coordinated_braking_simulation import simulate_coordinated_braking
+
 st.set_page_config(
     page_title="EV Regenerative Braking",
     page_icon="🚗",
@@ -293,12 +295,100 @@ if st.button("Run ABS Comparison"):
             abs_enabled=True
         )
 
-        abs_off = simulate_abs(
-            road=abs_road_type,
-            abs_enabled=False
-        )
+        
+    abs_off = simulate_abs(
+        road=abs_road_type,
+        abs_enabled=False
+    )
 
     st.subheader("ABS Braking Performance")
+    st.subheader("Battery Operating Conditions")
+
+    battery_soc_input = st.slider(
+        "Initial Battery SOC (%)",
+        min_value=0,
+        max_value=100,
+        value=60,
+        step=5
+    )
+
+    battery_temperature_input = st.slider(
+        "Battery Temperature (°C)",
+        min_value=-10,
+        max_value=60,
+        value=25,
+        step=5
+    )
+    coordinated_result = simulate_coordinated_braking(
+        road=abs_road_type,
+        abs_enabled=True,
+        initial_soc=battery_soc_input / 100.0,
+        battery_temperature=battery_temperature_input
+    )
+
+    st.metric(
+        "Recovered Battery Energy — ABS ON",
+        f"{coordinated_result['recovered_energy_kwh'] * 1000:.2f} Wh"
+    )
+    coordinated_result_off = simulate_coordinated_braking(
+        road=abs_road_type,
+        abs_enabled=False,
+        initial_soc=battery_soc_input / 100.0,
+        battery_temperature=battery_temperature_input
+    )
+
+    st.metric(
+        "Recovered Battery Energy — ABS OFF",
+        f"{coordinated_result_off['recovered_energy_kwh'] * 1000:.2f} Wh"
+    )
+
+
+     # Initial vehicle kinetic energy
+    vehicle_mass = 1500.0
+    initial_speed = 100.0 / 3.6
+
+    initial_kinetic_energy_kwh = (
+        0.5 * vehicle_mass * initial_speed**2
+    ) / 3_600_000
+
+    recovery_efficiency_on = (
+        coordinated_result["recovered_energy_kwh"]
+        / initial_kinetic_energy_kwh
+    ) * 100
+
+    recovery_efficiency_off = (
+        coordinated_result_off["recovered_energy_kwh"]
+        / initial_kinetic_energy_kwh
+    ) * 100
+
+    efficiency_col1, efficiency_col2 = st.columns(2)
+
+    efficiency_col1.metric(
+        "Energy Recovery — ABS ON",
+        f"{recovery_efficiency_on:.2f}%"
+    )
+
+    efficiency_col2.metric(
+        "Energy Recovery — ABS OFF",
+        f"{recovery_efficiency_off:.2f}%"
+    )   
+    st.subheader("Regenerative Energy Comparison")
+
+    energy_comparison = {
+        "ABS Mode": ["ABS ON", "ABS OFF"],
+        "Recovered Energy (Wh)": [
+            coordinated_result["recovered_energy_kwh"] * 1000,
+            coordinated_result_off["recovered_energy_kwh"] * 1000
+        ]
+    }
+
+    st.bar_chart(
+        energy_comparison,
+        x="ABS Mode",
+        y="Recovered Energy (Wh)"
+    )
+
+
 
     col1, col2 = st.columns(2)
 
@@ -306,6 +396,7 @@ if st.button("Run ABS Comparison"):
         "Stopping Distance — ABS ON",
         f"{abs_on['stop_distance']:.2f} m"
     )
+
 
     col2.metric(
         "Stopping Distance — ABS OFF",
