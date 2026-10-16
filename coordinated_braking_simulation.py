@@ -10,6 +10,8 @@ from battery_power_limit import calculate_max_regen_force
 from proportional_abs_controller import proportional_abs_control
 from brake_actuator import update_brake_pressure
 from adaptive_brake_coordinator import coordinate_adaptive_braking
+from road_adaptive_abs_controller import road_adaptive_abs_control
+from enhanced_tire_model import enhanced_tire_force
 
 def simulate_coordinated_braking(
     road="wet",
@@ -19,7 +21,9 @@ def simulate_coordinated_braking(
     abs_controller="original",
     actuator_enabled=False,
     actuator_response_time=0.02,
-    braking_mode="original"
+    braking_mode="original",
+    tire_model="original",
+    abs_gain=7.0
 ):
     
 
@@ -79,6 +83,13 @@ def simulate_coordinated_braking(
         if abs_enabled:
             if abs_controller == "proportional":
                 abs_factor = proportional_abs_control(slip)
+            elif abs_controller == "road_adaptive":
+                abs_factor = road_adaptive_abs_control(
+                    slip_ratio=slip,
+                    road=road,
+                    gain=abs_gain
+    )
+    
 
             elif abs_controller == "original":
                 abs_result = abs_brake_control(
@@ -93,8 +104,8 @@ def simulate_coordinated_braking(
 
             else:
                 raise ValueError(
-                    "abs_controller must be 'original' or 'proportional'"
-                )
+                    "abs_controller must be 'original', 'proportional', or 'road_adaptive'"
+            )
         else:
             abs_factor = 1.0
 
@@ -211,9 +222,14 @@ def simulate_coordinated_braking(
         assert regen_power >= 0.0
 
         # Calculate tire-road braking force
-        tire_force = calculate_tire_force(
-            slip, normal_force, road
-        )
+        if tire_model == "enhanced":
+           tire_force = enhanced_tire_force(
+        slip, normal_force, road
+    )
+        else:
+            tire_force = calculate_tire_force(
+                slip, normal_force, road
+    )
 
 
         
