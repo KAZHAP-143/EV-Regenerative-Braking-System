@@ -8,14 +8,18 @@ from battery_temperature_control import calculate_regen_temperature_factor
 from motor_power_model import calculate_regen_power
 from battery_power_limit import calculate_max_regen_force
 from proportional_abs_controller import proportional_abs_control
+from brake_actuator import update_brake_pressure
 
 def simulate_coordinated_braking(
     road="wet",
     abs_enabled=True,
     initial_soc=0.60,
     battery_temperature=25.0,
-    abs_controller="original"
+    abs_controller="original",
+    actuator_enabled=False,
+    actuator_response_time=0.02
 ):
+
     """
     Simplified quarter-car model with coordinated
     regenerative braking, friction braking, and ABS.
@@ -34,6 +38,10 @@ def simulate_coordinated_braking(
 
     requested_force = 2500.0
     regen_limit = 1500.0
+
+    # Brake actuator state (force in Newtons)
+    actuator_force = requested_force
+
 
     time = 0.0
     distance = 0.0
@@ -120,17 +128,38 @@ def simulate_coordinated_braking(
         )
 
 
+        # Apply optional brake actuator response delay
+        if actuator_enabled:
+            target_force = requested_force * abs_factor
+
+            actuator_force = update_brake_pressure(
+                current_force=actuator_force,
+                target_force=target_force,
+                dt=dt,
+                response_time=actuator_response_time
+            )
+
+            effective_abs_factor = (
+                actuator_force / requested_force
+            )
+
+            
+
+        else:
+            effective_abs_factor = abs_factor
+
+
         # Coordinate regenerative and friction braking
         braking = coordinate_braking(
             requested_force=requested_force,
             regen_limit=available_regen_force,
-            abs_factor=abs_factor
+            abs_factor=effective_abs_factor
         )
 
 
         
         total_brake_force = braking["total_brake_force"]
-
+        
                 # Calculate regenerative power from wheel rotation
         regen_electrical_power = calculate_regen_power(
             regen_force=braking["regen_force"],
