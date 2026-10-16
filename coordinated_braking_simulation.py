@@ -13,7 +13,9 @@ from adaptive_brake_coordinator import coordinate_adaptive_braking
 from road_adaptive_abs_controller import road_adaptive_abs_control
 from enhanced_tire_model import enhanced_tire_force
 from grip_based_brake_initializer import calculate_initial_brake_force
-
+from predictive_abs_controller import predictive_abs_control
+from pi_abs_controller import pi_abs_control
+from predictive_pi_abs_controller import predictive_pi_abs_control
 
 def simulate_coordinated_braking(
 
@@ -31,7 +33,10 @@ def simulate_coordinated_braking(
     abs_gain=7.0,
     initial_speed_kmh=100.0,
     initial_actuator_force=None,
-    initialization_mode="original"
+    initialization_mode="original",
+    prediction_time=0.002,
+    pi_kp=60.0,
+    pi_ki=10.0
 ):
     
 
@@ -100,31 +105,62 @@ def simulate_coordinated_braking(
         "tire_force": [],
         "wheel_speed": []
     }
-
+    previous_slip = 0.0
+    pi_integral_error = 0.0
     while vehicle_speed > 0.01 and time < 60.0:
 
         slip = calculate_slip_ratio(
             vehicle_speed, wheel_speed, wheel_radius
         )
 
-        
         if abs_enabled:
-            if abs_controller == "proportional":
+            if abs_controller == "predictive_pi":
+                abs_factor, pi_integral_error = predictive_pi_abs_control(
+                    slip_ratio=slip,
+                    previous_slip=previous_slip,
+                    integral_error=pi_integral_error,
+                    dt=dt,
+                    road=road,
+                    kp=pi_kp,
+                    ki=pi_ki,
+                    prediction_time=prediction_time,
+                )
+
+            elif abs_controller == "pi":
+                abs_factor, pi_integral_error = pi_abs_control(
+                    slip_ratio=slip,
+                    integral_error=pi_integral_error,
+                    dt=dt,
+                    road=road,
+                    kp=pi_kp,
+                    ki=pi_ki,
+                )
+
+            elif abs_controller == "predictive":
+                abs_factor = predictive_abs_control(
+                    slip_ratio=slip,
+                    previous_slip=previous_slip,
+                    dt=dt,
+                    road=road,
+                    gain=abs_gain,
+                    prediction_time=prediction_time,
+                )
+            elif abs_controller == "proportional":
                 abs_factor = proportional_abs_control(slip)
+
             elif abs_controller == "road_adaptive":
                 abs_factor = road_adaptive_abs_control(
                     slip_ratio=slip,
                     road=road,
-                    gain=abs_gain
-    )
-    
+                    gain=abs_gain,
+                )
 
             elif abs_controller == "original":
                 abs_result = abs_brake_control(
                     vehicle_speed,
                     wheel_speed,
                     requested_force,
-                    wheel_radius
+                    wheel_radius,
                 )
                 abs_factor = (
                     abs_result["brake_force"] / requested_force
@@ -132,13 +168,13 @@ def simulate_coordinated_braking(
 
             else:
                 raise ValueError(
-                    "abs_controller must be 'original', 'proportional', or 'road_adaptive'"
-            )
+                    "Invalid ABS controller"
+                )
         else:
             abs_factor = 1.0
 
 
-        
+        previous_slip = slip
         # Reduce regenerative braking availability at high SOC
         
         # Battery SOC and temperature constraints
