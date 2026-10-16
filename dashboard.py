@@ -30,6 +30,18 @@ road = st.sidebar.selectbox(
     ["Dry Road", "Wet Road"]
 )
 
+abs_controller_choice = st.sidebar.selectbox(
+    "ABS Controller",
+    ["Original ABS", "Proportional ABS (Kp = 7)"]
+)
+
+abs_controller = (
+    "proportional"
+    if abs_controller_choice == "Proportional ABS (Kp = 7)"
+    else "original"
+)
+
+
 battery_soc = st.sidebar.slider(
     "Battery SOC (%)", 0, 100, 60
 )
@@ -319,17 +331,35 @@ if st.button("Run ABS Comparison"):
         value=25,
         step=5
     )
+    
     coordinated_result = simulate_coordinated_braking(
         road=abs_road_type,
         abs_enabled=True,
         initial_soc=battery_soc_input / 100.0,
-        battery_temperature=battery_temperature_input
+        battery_temperature=battery_temperature_input,
+        abs_controller=abs_controller
     )
+
 
     st.metric(
         "Vehicle Energy Recovered — ABS ON",
         f"{coordinated_result['recovered_energy_kwh'] * 1000:.2f} Wh"
     )
+
+    st.subheader("Selected ABS Controller Performance")
+
+    abs_col1, abs_col2 = st.columns(2)
+
+    abs_col1.metric(
+        "ABS Stopping Distance",
+        f"{coordinated_result['stop_distance']:.2f} m"
+    )
+
+    abs_col2.metric(
+        "ABS Stopping Time",
+        f"{coordinated_result['stop_time']:.2f} s"
+    )
+
     coordinated_result_off = simulate_coordinated_braking(
         road=abs_road_type,
         abs_enabled=False,

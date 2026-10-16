@@ -7,12 +7,14 @@ from battery_soc_control import calculate_regen_soc_factor
 from battery_temperature_control import calculate_regen_temperature_factor
 from motor_power_model import calculate_regen_power
 from battery_power_limit import calculate_max_regen_force
+from proportional_abs_controller import proportional_abs_control
 
 def simulate_coordinated_braking(
     road="wet",
     abs_enabled=True,
     initial_soc=0.60,
-    battery_temperature=25.0
+    battery_temperature=25.0,
+    abs_controller="original"
 ):
     """
     Simplified quarter-car model with coordinated
@@ -61,16 +63,29 @@ def simulate_coordinated_braking(
             vehicle_speed, wheel_speed, wheel_radius
         )
 
+        
         if abs_enabled:
-            abs_result = abs_brake_control(
-                vehicle_speed, wheel_speed,
-                requested_force, wheel_radius
-            )
-            abs_factor = (
-                abs_result["brake_force"] / requested_force
-            )
+            if abs_controller == "proportional":
+                abs_factor = proportional_abs_control(slip)
+
+            elif abs_controller == "original":
+                abs_result = abs_brake_control(
+                    vehicle_speed,
+                    wheel_speed,
+                    requested_force,
+                    wheel_radius
+                )
+                abs_factor = (
+                    abs_result["brake_force"] / requested_force
+                )
+
+            else:
+                raise ValueError(
+                    "abs_controller must be 'original' or 'proportional'"
+                )
         else:
             abs_factor = 1.0
+
 
         
         # Reduce regenerative braking availability at high SOC
