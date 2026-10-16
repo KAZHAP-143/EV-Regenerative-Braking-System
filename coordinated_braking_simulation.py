@@ -65,7 +65,8 @@ def simulate_coordinated_braking(
         "regen_force": [],
         "friction_force": [],
         "total_brake_force": [],
-        "tire_force": []
+        "tire_force": [],
+        "wheel_speed": []
     }
 
     while vehicle_speed > 0.01 and time < 60.0:
@@ -238,6 +239,7 @@ def simulate_coordinated_braking(
 
         history["time"].append(time)
         history["vehicle_speed"].append(vehicle_speed)
+        history["wheel_speed"].append(wheel_speed)
         history["slip"].append(slip)
         history["regen_force"].append(braking["regen_force"])
         history["friction_force"].append(braking["friction_force"])
