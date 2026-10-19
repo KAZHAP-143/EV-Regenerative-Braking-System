@@ -66,25 +66,25 @@ The simulation uses a simplified longitudinal vehicle dynamics model with numeri
 
 The kinetic energy of the moving vehicle is:
 
-\[
+$$
 E_k = \frac{1}{2}mv^2
-\]
+$$
 
 Where:
-- \(m\) = vehicle mass (kg)
-- \(v\) = vehicle velocity (m/s)
+- $m$ = vehicle mass (kg)
+- $v$ = vehicle velocity (m/s)
 
 ### 2. Tire-Road Traction Limit
 
 The maximum available longitudinal tire-road force is approximated by:
 
-\[
+$$
 F_{\max} = \mu mg
-\]
+$$
 
 Where:
-- \(\mu\) = tire-road friction coefficient
-- \(g\) = gravitational acceleration (m/s²)
+- $\mu$ = tire-road friction coefficient
+- $g$ = gravitational acceleration (m/s²)
 
 The model uses different friction coefficients for dry and wet roads.
 
@@ -92,9 +92,9 @@ The model uses different friction coefficients for dry and wet roads.
 
 The vehicle's deceleration magnitude is calculated from:
 
-\[
+$$
 a = \frac{F_{\text{regen}} + F_{\text{friction}} + F_{\text{drag}} + F_{\text{rolling}}}{m}
-\]
+$$
 
 Regenerative and friction braking share the braking demand, subject to traction and component limitations.
 
@@ -102,13 +102,13 @@ Regenerative and friction braking share the braking demand, subject to traction 
 
 The electrical power delivered to the battery is approximated by:
 
-\[
+$$
 P_{\text{battery}} = F_{\text{regen}}v\eta
-\]
+$$
 
 Where:
-- \(F_{\text{regen}}\) = regenerative braking force (N)
-- \(\eta\) = speed-dependent motor conversion efficiency
+- $F_{\text{regen}}$ = regenerative braking force (N)
+- $\eta$ = speed-dependent motor conversion efficiency
 
 ### 5. Battery Protection
 
@@ -126,22 +126,22 @@ These thresholds are assumptions of this educational model, not universal electr
 
 The simulation accounts for the initial vehicle kinetic energy through recovered electrical energy and modeled losses:
 
-\[
+$$
 E_{\text{initial}} =
 E_{\text{battery}} +
 E_{\text{friction}} +
 E_{\text{drag}} +
 E_{\text{rolling}} +
 E_{\text{motor loss}}
-\]
+$$
 
 The numerical energy balance error is calculated as:
 
-\[
+$$
 E_{\text{error}} =
 E_{\text{initial}} -
 E_{\text{accounted}}
-\]
+$$
 
 This provides a consistency check on the simulation's energy accounting.
 
@@ -149,11 +149,11 @@ This provides a consistency check on the simulation's energy accounting.
 
 The overall energy recovery efficiency for a braking event is defined as:
 
-\[
+$$
 \eta_{\text{recovery}} =
 \frac{E_{\text{battery}}}{E_{\text{initial}}}
 \times 100\%
-\]
+$$
 
 This efficiency includes the effects of regenerative braking limitations, friction braking, road loads, and motor conversion losses.
 
