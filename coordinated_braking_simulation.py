@@ -36,7 +36,8 @@ def simulate_coordinated_braking(
     initialization_mode="original",
     prediction_time=0.002,
     pi_kp=60.0,
-    pi_ki=10.0
+    pi_ki=10.0,
+    time_step=0.0001
 ):
     
 
@@ -52,7 +53,10 @@ def simulate_coordinated_braking(
     wheel_inertia = 1.8
     normal_force = quarter_mass * 9.81
 
-    dt = 0.0001
+    if not isinstance(time_step, (int, float)) or not 0.0 < time_step <= 0.01:
+        raise ValueError("Time step must be positive and at most 0.01 s")
+
+    dt = time_step
 
     if not 0.0 < initial_speed_kmh <= 250.0:
         raise ValueError("Initial speed must be between 0 and 250 km/h")
