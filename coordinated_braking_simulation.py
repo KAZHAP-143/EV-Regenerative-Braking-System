@@ -16,7 +16,27 @@ from grip_based_brake_initializer import calculate_initial_brake_force
 from predictive_abs_controller import predictive_abs_control
 from pi_abs_controller import pi_abs_control
 from predictive_pi_abs_controller import predictive_pi_abs_control
+import math
 
+
+def validate_numeric_input(name, value, minimum, maximum, minimum_inclusive=True):
+    """Validate a finite numeric input within specified bounds."""
+
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(value)
+    ):
+        raise ValueError(f"{name} must be a finite number")
+
+    lower_valid = (
+        value >= minimum if minimum_inclusive else value > minimum
+    )
+
+    if not lower_valid or value > maximum:
+        raise ValueError(
+            f"{name} must be within the permitted range"
+        )
 def simulate_coordinated_braking(
 
 
@@ -53,14 +73,22 @@ def simulate_coordinated_braking(
     wheel_inertia = 1.8
     normal_force = quarter_mass * 9.81
 
-    if not isinstance(time_step, (int, float)) or not 0.0 < time_step <= 0.01:
-        raise ValueError("Time step must be positive and at most 0.01 s")
+    validate_numeric_input(
+        "Time step",
+        time_step,
+        minimum=0.0,
+        maximum=0.01,
+        minimum_inclusive=False,
+    )
 
     dt = time_step
-
-    if not 0.0 < initial_speed_kmh <= 250.0:
-        raise ValueError("Initial speed must be between 0 and 250 km/h")
-
+    validate_numeric_input(
+        "Initial speed",
+        initial_speed_kmh,
+        minimum=0.0,
+        maximum=250.0,
+        minimum_inclusive=False,
+    )
     vehicle_speed = initial_speed_kmh / 3.6
     wheel_speed = vehicle_speed / wheel_radius
 
@@ -72,10 +100,12 @@ def simulate_coordinated_braking(
         raise ValueError("Invalid brake initialization mode")
 
     if initial_actuator_force is not None:
-        if not 0.0 <= initial_actuator_force <= requested_force:
-            raise ValueError(
-                "Initial actuator force must be between 0 and requested force"
-            )
+        validate_numeric_input(
+            "Initial actuator force",
+            initial_actuator_force,
+            minimum=0.0,
+            maximum=requested_force,
+        )
         actuator_force = initial_actuator_force
 
     elif initialization_mode == "grip_based":
@@ -95,9 +125,12 @@ def simulate_coordinated_braking(
     max_battery_charging_power = 50_000.0  # Watts
     battery_capacity_kwh = 60.0
 
-    if not 0.0 <= initial_soc <= 1.0:
-        raise ValueError("Initial SOC must be between 0 and 1")
-
+    validate_numeric_input(
+        "Initial SOC",
+        initial_soc,
+        minimum=0.0,
+        maximum=1.0,
+    )
     battery_soc = initial_soc
     history = {
         "time": [],
